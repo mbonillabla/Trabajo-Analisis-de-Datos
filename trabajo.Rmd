@@ -1,34 +1,35 @@
 ---
-title: "Estudio sobre la relación entre datos de salud y hábitos"
-author: "Miguel Bernardino Bonilla Blanco y Lucas Azorin Fernández de Tejeda"
+title: "Trabajo Berni y Lucas"
+author: 'Berni Lucas'
+date: 11/9/2025
 output: 
-  html_document:
-    toc: true # table of content true
-    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
-    number_sections: true  ## if you want number sections at each table header
-    theme: united  # many options for theme, this one is my favorite.
-    highlight: tango  # specifies the syntax highlighting style
-    css: my.css   # you can add your custom css, should be in same folder
+  rmdformats::material
 ---
 
-Header 1
----------------
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-    
-## Header 2
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-    
 ```{r}
-summary(cars)
+t_result <- t.test(family_history_diabetes ~ diagnosed_diabetes, data = df)
+t_result
 ```
 
-You can also embed plots, for example:
-
-```{r, echo=FALSE}
-plot(cars)
-```
-### Header 3
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 ```{r}
-plot(cars)
+ggplot(df, aes(x = diagnosed_diabetes, fill = family_history_diabetes)) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Diabetes Diagnosis by Family History",
+    x = "Family History of Diabetes",
+    y = "Number of People",
+    fill = "Diabetes Diagnosis"
+  ) +
+  theme_minimal() +
+  scale_fill_manual(values = c("#56B4E9", "#E69F00"))
+css
+Copy code
+
 ```
+
+
+
+
+
+
+
