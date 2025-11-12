@@ -1,17 +1,42 @@
 ---
-title: "Trabajo Berni y Lucas"
-author: 'Berni Lucas'
+title: "Influencia de los Hábitos de Vida en el Desarrollo de la Diabetes"
+author: 'Bernandino Bonilla, Lucas Azorín'
 date: 11/9/2025
 output: 
-  rmdformats::material
+  rmdformats::robobook
+  
 ---
 
+# Introduccion
+
+La diabetes es una de las enfermedades crónicas más prevalentes en el mundo actual. Se caracteriza por niveles elevados de glucosa en la sangre debido a una deficiencia en la producción o en la acción de la insulina. En las últimas décadas, su incidencia ha aumentado de manera significativa, convirtiéndose en un problema global de salud pública que afecta a millones de personas en todas las edades y contextos sociales. Diversos factores influyen en el desarrollo de la diabetes, entre ellos los hábitos de vida como la alimentación, la actividad física y el peso corporal, este treabajo se enfocara en analizar estos factores con el objetivo de conozer la influencia que tiene cada uno en la probabilidad de desarrollar diabetes.
+
+# Visualización de los datos 
+
+
+
+# ¿Tiene o no efecto en la probabilidad de tener diabetes tener familia con diabetes diagnosticada?
+
 ```{r}
-t_result <- t.test(family_history_diabetes ~ diagnosed_diabetes, data = df)
+library(readr)
+df <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
+
+df$diagnosed_diabetes <- as.numeric(df$diagnosed_diabetes)
+df$family_history_diabetes <- as.numeric(df$family_history_diabetes)
+
+t_result <- t.test(diagnosed_diabetes ~ family_history_diabetes, data = df)
 t_result
 ```
 
+
 ```{r}
+library(readr)
+library(ggplot2)
+df <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
+
+df$family_history_diabetes <- as.factor(df$family_history_diabetes)
+df$diagnosed_diabetes <- as.factor(df$diagnosed_diabetes)
+
 ggplot(df, aes(x = diagnosed_diabetes, fill = family_history_diabetes)) +
   geom_bar(position = "dodge") +
   labs(
@@ -21,9 +46,10 @@ ggplot(df, aes(x = diagnosed_diabetes, fill = family_history_diabetes)) +
     fill = "Diabetes Diagnosis"
   ) +
   theme_minimal() +
-  scale_fill_manual(values = c("#56B4E9", "#E69F00"))
-css
-Copy code
+  scale_fill_manual(
+    values = c('0'="#56B4E9",'1' = "#E69F00")
+    )
+
 
 ```
 
