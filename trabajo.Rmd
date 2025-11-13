@@ -15,7 +15,7 @@ La diabetes es una de las enfermedades crónicas más prevalentes en el mundo ac
 
 
 
-# ¿Tiene o no efecto en la probabilidad de tener diabetes tener familia con diabetes diagnosticada?
+## ¿Tiene o no efecto en la probabilidad de tener diabetes tener familia con diabetes diagnosticada? ####
 
 ```{r}
 library(readr)
@@ -40,10 +40,10 @@ df$diagnosed_diabetes <- as.factor(df$diagnosed_diabetes)
 ggplot(df, aes(x = diagnosed_diabetes, fill = family_history_diabetes)) +
   geom_bar(position = "dodge") +
   labs(
-    title = "Diabetes Diagnosis by Family History",
-    x = "Family History of Diabetes",
-    y = "Number of People",
-    fill = "Diabetes Diagnosis"
+    title = "Diabetes Diagnosticada por el historial familiar",
+    x = "Historial de diabetes Familiar",
+    y = "Número de personas",
+    fill = "Diabetes Diagnosticada"
   ) +
   theme_minimal() +
   scale_fill_manual(
@@ -54,8 +54,47 @@ ggplot(df, aes(x = diagnosed_diabetes, fill = family_history_diabetes)) +
 ```
 
 
+## Cuál es la distribución de la población según su estado de diabetes y como se relacionan con la edad y género ####
 
+Ahora en este análisis lo que queremos estudiar y conocer es la distribución de los tipos de diabetes según el género de las personas que están en la muestra.
 
+De esta manera podremos identificar:
+
+  1.- El tipo de diabetes más común en la muestra.
+  
+  2.- ¿Existen diferencias significativas entre hombres y mujeres?.
+  
+  3.- ¿Cómo se distribuyen hombres y mujeres en cada tipo de diabetes?.
+
+```{r}
+data <- read_csv("Diabetes_and_LifeStyle_Dataset .csv")
+ggplot(data, aes(x = diabetes_stage, fill = gender)) +
+  geom_bar(position = "dodge", alpha = 0.8) +
+  labs(title = "Distribución de Etapas de Diabetes por Género",
+       subtitle = paste("Total de pacientes:", nrow(data)),
+       x = "Etapa/ Tipo de Diabetes", 
+       y = "Número de Pacientes",
+       fill = "Género",
+       caption = "Fuente: Dataset de Diabetes y Estilo de Vida") +
+  scale_fill_manual(values = c("Female" = "#E69F00", "Male" = "#56B4E9", "Other" = "#009E73")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_text(stat = 'count', aes(label = ..count..), 
+            position = position_dodge(0.9), vjust = -0.3, size = 3)
+
+```
+
+Conclusiones:
+
+De esta gráfica podemos percatarnos de varias cosas. A primera vista nos damos cuenta de que el tipo de diabetes más común(en la muestra) el tipo 2. Qué esto por otros estudios sabemos que es verdad. Es el tipo de diabetes más común en el mundo. Por otro lado se puede ver que en la muestra, las mujeres cuantan con más casos de diabetes(del tipo que sea) que los hombres. Esto podría deberse a cuestiones hormonales o biológicas. En resumen.
+
+  1.- La diabetes tipo 2 es la más común en la muestra.
+  
+  2.- Las mujeres cuentan con más casos acumulados y particulares(refiriendose   a cada tipo de diabetes) que los hombres.
+  
+  3.- La diabetes gestacional sigue el patrón esperado, porque esta totalmente    dominado por las mujeres que coincide con su naturaleza biológica.
+  
+  4.- Hay un grupo grande en estado de Pre-Diabetes, esto indica un riesgo       grande en un grupo también grande, el cuál podría beneficiarse de cuidados     preventivos para evitar padecer está enfermedad.
 
 
 
