@@ -11,6 +11,8 @@ output:
 
 La diabetes es una de las enfermedades crónicas más prevalentes en el mundo actual. Se caracteriza por niveles elevados de glucosa en la sangre debido a una deficiencia en la producción o en la acción de la insulina. En las últimas décadas, su incidencia ha aumentado de manera significativa, convirtiéndose en un problema global de salud pública que afecta a millones de personas en todas las edades y contextos sociales. Diversos factores influyen en el desarrollo de la diabetes, entre ellos los hábitos de vida como la alimentación, la actividad física y el peso corporal, este treabajo se enfocara en analizar estos factores con el objetivo de conozer la influencia que tiene cada uno en la probabilidad de desarrollar diabetes.
 
+![](diabetes.jpg)
+
 # Visualización de los datos 
 
 
@@ -67,7 +69,8 @@ De esta manera podremos identificar:
   3.- ¿Cómo se distribuyen hombres y mujeres en cada tipo de diabetes?.
 
 ```{r}
-data <- read_csv("Diabetes_and_LifeStyle_Dataset .csv")
+library(readr)
+data <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
 ggplot(data, aes(x = diabetes_stage, fill = gender)) +
   geom_bar(position = "dodge", alpha = 0.8) +
   labs(title = "Distribución de Etapas de Diabetes por Género",
@@ -97,4 +100,301 @@ De esta gráfica podemos percatarnos de varias cosas. A primera vista nos damos 
   4.- Hay un grupo grande en estado de Pre-Diabetes, esto indica un riesgo       grande en un grupo también grande, el cuál podría beneficiarse de cuidados     preventivos para evitar padecer está enfermedad.
 
 
+# Estudio para predecir la Diabetes ####
 
+Nuestro propósito en esta sección es analizar en profundidad los distintos factores que pueden influir en el desarrollo de la diabetes. Somos conscientes de que no es algo que dependa de una sola cosa, sino de una combinación de aspectos genéticos, físicos y relacionados con el estilo de vida. Al identificar y medir el impacto de cada una de estas variables, queremos crear un modelo que nos permita predecir, con un margen de certeza significativo, las probabilidades individuales de que una persona llegue a padecer esta condición. Se trata, en esencia, de usar la información para anticiparnos.
+
+## Relación entre los minutos de actividad física y los que están diagnosticados ####
+
+```{r}
+library(readr)
+library(ggplot2)
+library(scales)
+
+# 1. Datos
+
+data <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
+
+# Asegurar que las variables sean numéricas
+data$diagnosed_diabetes <- as.numeric(data$diagnosed_diabetes)
+data$physical_activity_minutes_per_week <- as.numeric(data$physical_activity_minutes_per_week)
+data$bmi <- as.numeric(data$bmi)
+
+data_subset <- data[, c(
+  "diagnosed_diabetes",
+  "physical_activity_minutes_per_week",
+  "bmi"
+)]
+
+# 2. Modelo simple
+
+modelo_simple <- lm(
+  diagnosed_diabetes ~ physical_activity_minutes_per_week + bmi,
+  data = data_subset
+)
+
+# Predicciones individuales
+data_subset$prob_fit <- predict(modelo_simple, type = "response")
+
+# 3. Grid
+
+activity_seq <- seq(
+  min(data_subset$physical_activity_minutes_per_week, na.rm = TRUE),
+  max(data_subset$physical_activity_minutes_per_week, na.rm = TRUE),
+  length.out = 300
+)
+
+pred_line <- data.frame(
+  physical_activity_minutes_per_week = activity_seq,
+  bmi = mean(data_subset$bmi, na.rm = TRUE)
+)
+
+pred_line$prob_fit <- predict(modelo_simple, newdata = pred_line)
+
+# 4. Gráfico 
+
+ggplot() +
+  
+  geom_point(
+    data = data_subset,
+    aes(
+      x = physical_activity_minutes_per_week,
+      y = diagnosed_diabetes
+    ),
+    alpha = 0.15,
+    size = 1.5
+  ) +
+  
+  geom_line(
+    data = pred_line,
+    aes(
+      x = physical_activity_minutes_per_week,
+      y = prob_fit
+    ),
+    size = 1.6,
+    color = "#0073C2"
+  ) +
+  
+  labs(
+    title = "Probabilidad Estimada de Diabetes según Minutos de Ejercicio Semanal",
+    x = "Minutos de actividad física por semana",
+    y = "Diagnóstico / Probabilidad estimada"
+  ) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(colour = alpha("grey70", 0.4))
+  ) +
+  
+  scale_y_continuous(limits = c(0, 1))
+  
+
+```
+
+Aquí podemos observar que sí hay una relación entre el tiempo de ejercicio a la semana y las personas que tienen diabetes, podemos observar que hay más probabilidad de tener diabetes si se hace  poca cantidad de ejercicio, lo único es que los puntos únicamente se encuentran en 1 y 0 porque no tenemos puntos intermedios entre quienes tienen o no diabetes. Pero más tarde intentaremos con otras variables ver en que fase(más o menos cerca de contraer diabetes) se encuentran las personas.
+
+
+## Minutos de actividad física e historial familiar ####
+
+Ahora veremos como afecta que una persona pueda contraer diabetes dependiendo de si ha tenido hitorial familiar y el tiempo que hace deporte a la semana, a priori lo que nosotros y la mayoría de personas pensamos es que ambas son significativas e influyen mucho en la persona.
+```{r}
+library(readr)
+library(ggplot2)
+library(scales)
+
+# 1. Cargar y preparar datos
+data <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
+
+# Asegurar que las variables sean numéricas
+data$diagnosed_diabetes <- as.numeric(data$diagnosed_diabetes)
+data$physical_activity_minutes_per_week <- as.numeric(data$physical_activity_minutes_per_week)
+data$family_history_diabetes <- as.numeric(data$family_history_diabetes)
+
+data_subset <- data[, c(
+  "diagnosed_diabetes",
+  "physical_activity_minutes_per_week",
+  "family_history_diabetes"
+)]
+
+# 2. Modelo de regresión lineal múltiple
+modelo_multiple <- lm(
+  diagnosed_diabetes ~ physical_activity_minutes_per_week + family_history_diabetes,
+  data = data_subset
+)
+
+# Predicciones individuales
+data_subset$prob_fit <- predict(modelo_multiple, type = "response")
+
+# 3. Grid con intervalos de confianza para la media
+activity_seq <- seq(
+  min(data_subset$physical_activity_minutes_per_week, na.rm = TRUE),
+  max(data_subset$physical_activity_minutes_per_week, na.rm = TRUE),
+  length.out = 300
+)
+
+# Crear grid para ambos escenarios
+pred_line_sin_historial <- data.frame(
+  physical_activity_minutes_per_week = activity_seq,
+  family_history_diabetes = 0,
+  grupo = "Sin historial familiar"
+)
+
+pred_line_con_historial <- data.frame(
+  physical_activity_minutes_per_week = activity_seq,
+  family_history_diabetes = 1,
+  grupo = "Con historial familiar"
+)
+
+# Calcular predicciones e intervalos de confianza para la media
+pred_sin_historial <- predict(modelo_multiple, newdata = pred_line_sin_historial, 
+                              interval = "confidence", level = 0.95)
+pred_con_historial <- predict(modelo_multiple, newdata = pred_line_con_historial, 
+                              interval = "confidence", level = 0.95)
+
+# Añadir predicciones e intervalos a los dataframes
+pred_line_sin_historial$prob_fit <- pred_sin_historial[, "fit"]
+pred_line_sin_historial$lwr <- pred_sin_historial[, "lwr"]
+pred_line_sin_historial$upr <- pred_sin_historial[, "upr"]
+
+pred_line_con_historial$prob_fit <- pred_con_historial[, "fit"]
+pred_line_con_historial$lwr <- pred_con_historial[, "lwr"]
+pred_line_con_historial$upr <- pred_con_historial[, "upr"]
+
+# Combinar ambos dataframes para ggplot
+pred_line_combined <- rbind(pred_line_sin_historial, pred_line_con_historial)
+
+# 4. Gráfico con intervalos de confianza para la media - CORREGIDO
+ggplot() +
+  geom_point(
+    data = data_subset,
+    aes(
+      x = physical_activity_minutes_per_week,
+      y = diagnosed_diabetes
+    ),
+    alpha = 0.1,
+    size = 1.5,
+    color = "gray50"
+  ) +
+  
+  # Intervalos de confianza para la media (áreas sombreadas)
+  geom_ribbon(
+    data = pred_line_combined,
+    aes(
+      x = physical_activity_minutes_per_week,
+      ymin = lwr,
+      ymax = upr,
+      fill = grupo
+    ),
+    alpha = 0.3
+  ) +
+  
+  # Líneas de predicción (media)
+  geom_line(
+    data = pred_line_combined,
+    aes(
+      x = physical_activity_minutes_per_week,
+      y = prob_fit,
+      color = grupo
+    ),
+    size = 1.5
+  ) +
+  
+  # Escalas y colores mejorados
+  scale_color_manual(
+    name = "Historial familiar",
+    values = c("Sin historial familiar" = "#0073C2", 
+               "Con historial familiar" = "#FF6B6B")
+  ) +
+  
+  scale_fill_manual(
+    name = "Historial familiar",
+    values = c("Sin historial familiar" = "#0073C2", 
+               "Con historial familiar" = "#FF6B6B")
+  ) +
+  
+  labs(
+    title = "Probabilidad Estimada de Diabetes según Minutos de Ejercicio Semanal",
+    subtitle = "Líneas sólidas: probabilidad media predicha | Áreas sombreadas: intervalos de confianza del 95% para la media",
+    x = "Minutos de actividad física por semana",
+    y = "Probabilidad estimada de diabetes"
+  ) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(
+      size = 16,
+      face = "bold",
+      hjust = 0.5,
+      margin = margin(b = 10)
+    ),
+    plot.subtitle = element_text(
+      size = 12,
+      color = "gray40",
+      hjust = 0.5,
+      margin = margin(b = 15)
+    ),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(color = alpha("grey80", 0.6)),
+    axis.title = element_text(face = "bold"),
+    legend.position = "top",
+    legend.title = element_text(face = "bold", size = 12),
+    legend.text = element_text(size = 11),
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  
+  scale_y_continuous(
+    limits = c(0, 1),
+    labels = percent_format(accuracy = 1),
+    breaks = seq(0, 1, by = 0.2)
+  ) +
+  
+  scale_x_continuous(
+    labels = comma_format()
+  )
+
+# 5. Variables para análisis
+coef_intercept <- round(coef(modelo_multiple)[1], 4)
+coef_actividad <- round(coef(modelo_multiple)[2], 4)
+coef_historial <- round(coef(modelo_multiple)[3], 4)
+
+conf_int <- confint(modelo_multiple, level = 0.95)
+
+aumento_historial <- round(coef_historial * 100, 2)
+cambio_actividad <- round(coef_actividad * 100, 4)
+
+prob_con_historial <- round(mean(data_subset$prob_fit[data_subset$family_history_diabetes == 1], na.rm = TRUE), 3)
+prob_sin_historial <- round(mean(data_subset$prob_fit[data_subset$family_history_diabetes == 0], na.rm = TRUE), 3)
+
+r_cuadrado <- round(summary(modelo_multiple)$r.squared, 4)
+r_cuadrado_ajustado <- round(summary(modelo_multiple)$adj.r.squared, 4)
+
+avg_ci_width_sin <- round(mean(pred_line_sin_historial$upr - pred_line_sin_historial$lwr), 4)
+avg_ci_width_con <- round(mean(pred_line_con_historial$upr - pred_line_con_historial$lwr), 4)
+```
+**Analisis general:**
+
+    Tener historial familiar de diabetes aumenta el riesgo en         23.5%
+
+    Personas sin historial familiar: riesgo promedio de 54.8%
+
+    Personas con historial familiar: riesgo promedio de 78.4%
+
+    Esto significa que el historial familiar casi duplica el          riesgo   base
+
+**Sobre la actividad física:**
+
+    Por cada minuto adicional de ejercicio semanal, el riesgo de diabetes disminuye en 0.057%
+
+    Aunque esta reducción parece pequeña por minuto, acumula un efecto significativo:
+
+    30 minutos extra semanales: reduce riesgo en 1.7%
+
+    60 minutos extra semanales: reduce riesgo en 3.4%
+
+    120 minutos extra semanales: reduce riesgo en 6.8%
+
+El modelo explica el 4.93% de la variabilidad en los casos de diabetes, lo que indica que aunque el historial familiar y el ejercicio son factores importantes, existen otros elementos no considerados en este análisis que también influyen significativamente en el desarrollo de la enfermedad.
+
+**Conclusión Práctica:**
+El historial familiar es el factor de riesgo más fuerte identificado, mientras que la actividad física regular ofrece una protección moderada pero acumulativa contra la diabetes.Entonces nos hemos dado cuenta de que lo que pensabamos no estaba del todo bien, solo hemos acertado en cuanto al historial familiar.
