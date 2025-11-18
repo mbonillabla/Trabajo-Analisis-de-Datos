@@ -29,7 +29,13 @@ df$family_history_diabetes <- as.numeric(df$family_history_diabetes)
 t_result <- t.test(diagnosed_diabetes ~ family_history_diabetes, data = df)
 t_result
 ```
+Como se puede ver, la grafica se divide en dos bloques. El bloque sobre el 0 no tiene familia con historial de diabetes y el bloque sobre el 1 si. Si miramos la proporcion de gente con diabetes diagnosticada y la gente en el bloque, se ve claramente que tener una familia con historial de diabetes hace que tu tengas mas probabilidad de desarrollar diabetes. 
 
+Con un prop.test podremos determinar si hay una correlacion entre tener diabetes teninedo familia con diabetes de manera matematica: (Hemos elegido hacer un prop.test porque es un modelo que sigue una distribucion binomial y al tener valores binarion nos ha parecido mas adecuado)
+
+Ho: La probabilidad de tener diabetes es independiente de tu genetica.
+
+H1: Tener familia con diabetes aumenta la probabilidad de tener diabetes.
 
 ```{r}
 library(readr)
@@ -54,7 +60,11 @@ ggplot(df, aes(x = diagnosed_diabetes, fill = family_history_diabetes)) +
 
 
 ```
+**Conclusiones:**
 
+Como podemos ver por el resultado del prop.test tenemos datos que son estadisticamente significativos como para rechazar la hipotesis nula.
+
+Como consequencia, se ve que efectivamente hay una correlacion entre tener familia con historial de diabetes y la probabilidad que tiene un sujeto en tener diabetes.
 
 ## Cuál es la distribución de la población según su estado de diabetes y como se relacionan con la edad y género ####
 
@@ -374,27 +384,507 @@ avg_ci_width_con <- round(mean(pred_line_con_historial$upr - pred_line_con_histo
 ```
 **Analisis general:**
 
-    Tener historial familiar de diabetes aumenta el riesgo en         23.5%
+  Tener historial familiar de diabetes aumenta el riesgo en 23.5%
 
-    Personas sin historial familiar: riesgo promedio de 54.8%
+  Personas sin historial familiar: riesgo promedio de 54.8%
 
-    Personas con historial familiar: riesgo promedio de 78.4%
+  Personas con historial familiar: riesgo promedio de 78.4%
 
-    Esto significa que el historial familiar casi duplica el          riesgo   base
+  Esto significa que el historial familiar casi duplica el riesgo base
 
 **Sobre la actividad física:**
 
-    Por cada minuto adicional de ejercicio semanal, el riesgo de diabetes disminuye en 0.057%
+  Por cada minuto adicional de ejercicio semanal, el riesgo de diabetes disminuye en 0.057%
 
-    Aunque esta reducción parece pequeña por minuto, acumula un efecto significativo:
+  Aunque esta reducción parece pequeña por minuto, acumula un efecto significativo:
 
-    30 minutos extra semanales: reduce riesgo en 1.7%
+  30 minutos extra semanales: reduce riesgo en 1.7%
 
-    60 minutos extra semanales: reduce riesgo en 3.4%
+  60 minutos extra semanales: reduce riesgo en 3.4%
 
-    120 minutos extra semanales: reduce riesgo en 6.8%
+  120 minutos extra semanales: reduce riesgo en 6.8%
 
 El modelo explica el 4.93% de la variabilidad en los casos de diabetes, lo que indica que aunque el historial familiar y el ejercicio son factores importantes, existen otros elementos no considerados en este análisis que también influyen significativamente en el desarrollo de la enfermedad.
 
 **Conclusión Práctica:**
 El historial familiar es el factor de riesgo más fuerte identificado, mientras que la actividad física regular ofrece una protección moderada pero acumulativa contra la diabetes.Entonces nos hemos dado cuenta de que lo que pensabamos no estaba del todo bien, solo hemos acertado en cuanto al historial familiar.
+
+
+## Relación entre Marcadores Glucémicos y Probabilidad de Diabetes ####
+
+Los marcadores glucémicos son una medida de la rapidez con la que un alimento con carbohidratos aumenta los niveles de azúcar(glucosa) en la sangre después de su consumo.
+
+La **hemoglobina glucosada(HbA1c)** es una medida que mide el porcentaje de hemoglobina en los glóbulos rojos qué está unida al azúcar.
+La información que nos proporciona es el nivel promedio de glucosa en la sangre durante los últimos 2-3 meses. 
+
+La **glucosa en ayunas (GA)** mide el nivel de glucosa en la sangre después de un ayuno de al menos 8 horas.
+Nos porporciona un nivel de glucosa en sangre en un momento específico, reflejando el control glúcemico después de un periodo de no ingesta.
+
+La **glucosa postprandial (GPP)** mide el nivel de glucosa en la sangre después de una comida, generalmente se mide 2 horas después de haber comido.
+Nos indica como el cuerpo gestiona el azúcar después de la ingesta de alimentos y como responde el páncreas liberando insulina.
+
+Ahora veremos de estas tres cuál es la mejor para ver cual tiene una relación mayor y nos sirve para predescir mejor la diabetes.
+
+```{r}
+library(readr)
+library(ggplot2)
+library(scales)
+library(dplyr)
+library(tidyr)
+
+data <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
+
+# Asegurar variables numéricas
+data <- data %>% mutate(
+  diagnosed_diabetes = as.numeric(diagnosed_diabetes),
+  hba1c = as.numeric(hba1c),
+  glucose_fasting = as.numeric(glucose_fasting),
+  glucose_postprandial = as.numeric(glucose_postprandial),
+  family_history_diabetes = as.numeric(family_history_diabetes)
+)
+
+# Crear subset con solo las columnas relevantes
+data_subset <- data %>%
+  select(diagnosed_diabetes, hba1c, glucose_fasting, glucose_postprandial, family_history_diabetes) %>%
+  na.omit()
+
+
+data_long <- data_subset %>%
+  pivot_longer(
+    cols = c(hba1c, glucose_fasting, glucose_postprandial),
+    names_to = "variable",
+    values_to = "valor"
+  ) %>%
+  mutate(
+    variable = recode(variable,
+                      "hba1c" = "HbA1c (%)",
+                      "glucose_fasting" = "Glucosa en Ayunas (mg/dL)",
+                      "glucose_postprandial" = "Glucosa Postprandial (mg/dL)"
+    ),
+    grupo = ifelse(family_history_diabetes == 1,
+                   "Con historial familiar", "Sin historial familiar")
+  )
+
+
+hba1c_seq <- seq(min(data_subset$hba1c), max(data_subset$hba1c), length.out = 200)
+ayunas_seq <- seq(min(data_subset$glucose_fasting), max(data_subset$glucose_fasting), length.out = 200)
+post_seq <- seq(min(data_subset$glucose_postprandial), max(data_subset$glucose_postprandial), length.out = 200)
+
+
+modelo_hba1c  <- lm(diagnosed_diabetes ~ hba1c + family_history_diabetes, data = data_subset)
+modelo_ayunas <- lm(diagnosed_diabetes ~ glucose_fasting + family_history_diabetes, data = data_subset)
+modelo_post   <- lm(diagnosed_diabetes ~ glucose_postprandial + family_history_diabetes, data = data_subset)
+
+
+make_pred <- function(seq, var_name, modelo, var_label){
+  
+  df <- expand.grid(
+    valor = seq,
+    family_history_diabetes = c(0, 1)
+  )
+  
+  names(df)[1] <- var_name
+  
+  preds <- predict(modelo, newdata = df, interval = "confidence")
+  
+  df$fit  <- preds[, "fit"]
+  df$lwr  <- preds[, "lwr"]
+  df$upr  <- preds[, "upr"]
+  
+  df$variable <- var_label
+  df$grupo    <- ifelse(df$family_history_diabetes == 1,
+                        "Con historial familiar", "Sin historial familiar")
+  
+  # Devolver con columna genérica "valor"
+  names(df)[1] <- "valor"
+  df
+}
+
+
+pred_combined <- bind_rows(
+  make_pred(hba1c_seq, "hba1c", modelo_hba1c, "HbA1c (%)"),
+  make_pred(ayunas_seq, "glucose_fasting", modelo_ayunas, "Glucosa en Ayunas (mg/dL)"),
+  make_pred(post_seq, "glucose_postprandial", modelo_post, "Glucosa Postprandial (mg/dL)")
+)
+
+grafico <- ggplot() +
+  
+  geom_point(
+    data = data_long,
+    aes(x = valor, y = diagnosed_diabetes),
+    alpha = 0.05, size = 1, color = "gray50"
+  ) +
+  
+  geom_ribbon(
+    data = pred_combined,
+    aes(x = valor, ymin = lwr, ymax = upr, fill = grupo),
+    alpha = 0.25
+  ) +
+  
+  geom_line(
+    data = pred_combined,
+    aes(x = valor, y = fit, color = grupo),
+    linewidth = 1.3
+  ) +
+  
+  facet_wrap(~ variable, scales = "free_x", ncol = 3) +
+  scale_color_manual(
+    name = "Historial familiar:",
+    values = c(
+      "Sin historial familiar" = "#0066CC",
+      "Con historial familiar" = "#CC0033"
+    )
+  ) +
+  scale_fill_manual(
+    name = "Historial familiar:",
+    values = c(
+      "Sin historial familiar" = "#66B2FF",
+      "Con historial familiar" = "#FF99A6"
+    )
+  ) +
+  
+  scale_y_continuous(
+    limits = c(0, 1),
+    labels = percent_format(accuracy = 1),
+    breaks = seq(0, 1, 0.2)
+  ) +
+  
+  labs(
+    title = "Marcadores glucémicos y probabilidad estimada",
+    subtitle = "Modelos lineales",
+    x = "Valor del marcador",
+    y = "Probabilidad estimada"
+  ) +
+  
+  theme_minimal(base_size = 15) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 13, color = "gray40", hjust = 0.5),
+    legend.position = "top",
+    legend.title = element_text(face = "bold"),
+    strip.text = element_text(face = "bold", size = 12),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(color = alpha("grey80", 0.6)),
+    plot.margin = margin(20, 20, 20, 20)
+  )
+
+grafico
+
+# 8. modelos
+comparacion <- data.frame(
+  Variable = c("HbA1c (%)", "Glucosa Ayunas", "Glucosa Postprandial"),
+  R2 = c(
+    summary(modelo_hba1c)$r.squared,
+    summary(modelo_ayunas)$r.squared,
+    summary(modelo_post)$r.squared
+  ),
+  Coef_Variable = c(
+    coef(modelo_hba1c)["hba1c"],
+    coef(modelo_ayunas)["glucose_fasting"],
+    coef(modelo_post)["glucose_postprandial"]
+  ),
+  Coef_Historial = c(
+    coef(modelo_hba1c)["family_history_diabetes"],
+    coef(modelo_ayunas)["family_history_diabetes"],
+    coef(modelo_post)["family_history_diabetes"]
+  )
+)
+
+comparacion_redondeada <- comparacion
+comparacion_redondeada[, sapply(comparacion_redondeada, is.numeric)] <- 
+  round(comparacion_redondeada[, sapply(comparacion_redondeada, is.numeric)], 4)
+
+print(comparacion_redondeada)
+
+```
+
+**Ánalisis General:**
+
+Así a primera vista, nos podemos dar cuenta de que el mejor predictor que tenemos es la **homoglobina glicosilada** o **HbA1c**.  Su coeficiente es alto y estable. 
+
+La glucosa en ayunas y postprandial nos aportan más información útil pero para momentos especificos, por lo cuál serían más unas medidas de monitoreo que de predicción. 
+
+Y finalmente, el historial familiar sigue teniendo un impacto constante, podemos observar en la gráfica que con un nivel menor de cualquiera de las tres medidas, la probabilidad de contraer diabetes crece. Impacta de manera leve/media.
+
+Descartaremos la glucosa en ayunas y postprandial; y mandentremos la homoglobina glicosada junto con el historial familiar para seguir con una predicción más acertada.
+
+## Relación entre HbA1c, historial familiar y la edad ####
+
+Ahora terminaremos nuestro análisis con otro factor que consideramos y pensamos que es importante. Este es la edad. Hemos pensado que es uno de los factores que más pueden afectar a las probabilidades de poder padecer diabetes. A continuación comprobaremos si en verdad es importante. 
+
+
+```{r}
+library(readr)
+library(ggplot2)
+library(scales)
+library(dplyr)
+library(tidyr)
+data <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
+
+data <- data %>% mutate(
+  diagnosed_diabetes = as.numeric(diagnosed_diabetes),
+  hba1c = as.numeric(hba1c),
+  family_history_diabetes = as.numeric(family_history_diabetes),
+  Age = as.numeric(Age)
+)
+
+data_subset <- data %>%
+  select(diagnosed_diabetes, hba1c, family_history_diabetes, Age) %>%
+  na.omit()
+
+data_subset <- data_subset %>% 
+  mutate(
+    age_group = cut(
+      Age,
+      breaks = c(0, 40, 60, 120),
+      labels = c("≤40 años", "41-60 años", "≥61 años")
+    )
+  )
+
+modelo <- lm(
+  diagnosed_diabetes ~ hba1c + family_history_diabetes + Age,
+  data = data_subset
+)
+
+hba1c_seq <- seq(min(data_subset$hba1c), max(data_subset$hba1c), length.out = 100)
+
+make_predictions <- function() {
+  predictions_list <- list()
+  age_groups <- levels(data_subset$age_group)
+  
+  for (i in seq_along(age_groups)) {
+    
+    age_rep <- switch(i,
+                      "≤40 años" = 30,
+                      "41-60 años" = 50, 
+                      "≥61 años" = 70
+    )
+    
+    pred_sin <- data.frame(
+      hba1c = hba1c_seq,
+      family_history_diabetes = 0,
+      Age = age_rep,
+      age_group = age_groups[i],
+      grupo = "Sin historial familiar"
+    )
+    
+    pred_sin_results <- predict(modelo, newdata = pred_sin, interval = "confidence")
+    pred_sin$fit <- pred_sin_results[, "fit"]
+    pred_sin$lwr <- pred_sin_results[, "lwr"]
+    pred_sin$upr <- pred_sin_results[, "upr"]
+    
+    pred_con <- data.frame(
+      hba1c = hba1c_seq,
+      family_history_diabetes = 1,
+      Age = age_rep,
+      age_group = age_groups[i],
+      grupo = "Con historial familiar"
+    )
+    
+    pred_con_results <- predict(modelo, newdata = pred_con, interval = "confidence")
+    pred_con$fit <- pred_con_results[, "fit"]
+    pred_con$lwr <- pred_con_results[, "lwr"]
+    pred_con$upr <- pred_con_results[, "upr"]
+    
+    predictions_list[[i]] <- bind_rows(pred_sin, pred_con)
+  }
+  
+  return(bind_rows(predictions_list))
+}
+
+
+pred_df <- make_predictions()
+
+pred_df <- pred_df %>%
+  mutate(
+    fit = pmin(pmax(fit, 0), 1),
+    lwr = pmin(pmax(lwr, 0), 1),
+    upr = pmin(pmax(upr, 0), 1)
+  )
+
+grafico_edad <- ggplot() +
+  
+  geom_point(
+    data = data_subset,
+    aes(x = hba1c, y = diagnosed_diabetes),
+    alpha = 0.1, size = 1, color = "gray60"
+  ) +
+
+  geom_ribbon(
+    data = pred_df,
+    aes(x = hba1c, ymin = lwr, ymax = upr, fill = grupo),
+    alpha = 0.3
+  ) +
+  
+  geom_line(
+    data = pred_df,
+    aes(x = hba1c, y = fit, color = grupo),
+    linewidth = 1.2
+  ) +
+  
+
+  facet_wrap(~ age_group, ncol = 3) +
+  
+  scale_color_manual(
+    name = "Historial familiar:",
+    values = c("Sin historial familiar" = "#0066CC",
+               "Con historial familiar" = "#CC0033")
+  ) +
+  
+  scale_fill_manual(
+    name = "Historial familiar:",
+    values = c("Sin historial familiar" = "#0066CC",
+               "Con historial familiar" = "#CC0033")
+  ) +
+  
+  scale_y_continuous(
+    limits = c(0, 1),
+    labels = percent_format(accuracy = 1),
+    breaks = seq(0, 1, 0.2)
+  ) +
+  
+  labs(
+    title = "Relación entre HbA1c y Probabilidad de Diabetes por Grupos de Edad",
+    subtitle = "Líneas sólidas: probabilidad media predicha | Áreas sombreadas: intervalos de confianza del 95%",
+    x = "HbA1c (%)",
+    y = "Probabilidad Estimada de Diabetes",
+    caption = "Modelo: Regresión lineal múltiple ajustado por edad e historial familiar"
+  ) +
+  
+
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", size = 12),
+    legend.position = "top",
+    strip.text = element_text(face = "bold", size = 12),
+    panel.grid.minor = element_blank()
+  )
+
+print(grafico_edad)
+
+summary(modelo)$r.squared
+summary(modelo)$adj.r.squared
+summary(modelo)$fstatistic[1]
+pf(summary(modelo)$fstatistic[1], 
+   summary(modelo)$fstatistic[2], 
+   summary(modelo)$fstatistic[3], 
+   lower.tail = FALSE)
+
+coeficientes <- summary(modelo)$coefficients
+coeficientes
+
+conf_int <- confint(modelo)
+conf_int
+
+coeficientes["hba1c", 1] * 100
+coeficientes["Age", 1] * 100
+coeficientes["family_history_diabetes", 1] * 100
+
+for (age_group in levels(data_subset$age_group)) {
+  subset_group <- data_subset %>% filter(age_group == !!age_group)
+  prob_con_historial <- mean(subset_group$diagnosed_diabetes[subset_group$family_history_diabetes == 1])
+  prob_sin_historial <- mean(subset_group$diagnosed_diabetes[subset_group$family_history_diabetes == 0])
+  
+  prob_con_historial * 100
+  prob_sin_historial * 100
+  (prob_con_historial - prob_sin_historial) * 100
+}
+
+nrow(data_subset)
+mean(data_subset$diagnosed_diabetes) * 100
+mean(data_subset$family_history_diabetes) * 100
+
+age_dist <- table(data_subset$age_group)
+age_dist
+age_dist/nrow(data_subset)*100
+
+min(data_subset$hba1c)
+max(data_subset$hba1c)
+min(data_subset$Age)
+max(data_subset$Age)
+
+coeficientes["hba1c", 4] < 0.05
+coeficientes["family_history_diabetes", 4] < 0.05
+coeficientes["Age", 4] < 0.05
+```
+
+**Análisis final**
+
+**1.- Eficacia del modelo**
+
+El modelo presenta una R^2 de .4629, lo que indica que explica el 46.3% de la variabilidad en el diagnóstico de diabetes. Esto representa un poder predictivo moderadamente alto para un modelo epidemiológico. El valor p extremadamente significativo (< 2.22e-16) confirma que el modelo en su conjunto es altamente predictivo.
+
+**2. IMPACTO DE LOS FACTORES DE RIESGO**
+
+**HbA1c - Factor Principal:**
+
+Cada aumento del 1% en HbA1c incrementa la probabilidad de diabetes en 40 puntos porcentuales
+
+Es el predictor más fuerte del modelo (t-value = 270.5)
+
+El intervalo de confianza [0.3971, 0.4029] confirma la precisión de esta estimación
+
+Historial Familiar - Factor Importante:
+
+Aumenta la probabilidad base en 4.5 puntos porcentuales
+
+Efecto consistente y altamente significativo (p < 0.001)
+
+Edad - Factor Moderado:
+
+Cada año adicional aumenta el riesgo en 0.1 puntos porcentuales
+
+Aunque pequeño por año, el efecto acumulativo es relevante
+
+**3. PATRONES POR GRUPOS DE EDAD**
+
+Jóvenes (≤40 años):
+
+Mayor impacto relativo del historial familiar (25.7% de diferencia)
+
+Prevalencia base más baja: 46.5% sin historial vs 72.2% con historial
+
+Adultos (41-60 años):
+
+Diferencia de 23.4% por historial familiar
+
+Prevalencia intermedia: 55% sin historial vs 78.5% con historial
+
+Mayores (≥61 años):
+
+Menor impacto relativo del historial familiar (21.3% de diferencia)
+
+Alta prevalencia general: 64.2% sin historial vs 85.5% con historial
+
+**4. PERFIL EPIDEMIOLÓGICO DE LA MUESTRA**
+
+Tamaño muestral robusto: 97,297 observaciones
+
+Alta prevalencia general de diabetes: 60%
+
+Distribución etaria equilibrada con predominio de adultos (44.5%)
+
+22% de la población reporta historial familiar de diabetes
+
+Rango amplio de HbA1c (4-9.8%) que cubre desde valores normales hasta diabetes establecida
+
+**5. IMPLICACIONES CLÍNICAS**
+
+El HbA1c emerge como el predictor individual más potente
+
+El historial familiar mantiene su importancia independientemente de la edad
+
+El efecto edad, aunque pequeño anualmente, contribuye al riesgo acumulado
+
+Los jóvenes con historial familiar constituyen un grupo de alto riesgo que merece especial atención preventiva
+
+**6. LIMITACIONES Y FORTALEZAS**
+
+Fortaleza: Modelo estadísticamente sólido con todas las variables significativas
+
+Limitación: R² sugiere que otros factores no medidos también influyen en el riesgo de diabetes
+
+Los intervalos de confianza estrechos indican estimaciones precisas
+
+El modelo valida la importancia conjunta de factores bioquímicos (HbA1c), genéticos (historial familiar) y demográficos (edad) en la predicción del riesgo diabético.
