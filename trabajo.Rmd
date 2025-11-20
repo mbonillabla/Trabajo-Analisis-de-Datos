@@ -809,7 +809,7 @@ coeficientes["family_history_diabetes", 4] < 0.05
 coeficientes["Age", 4] < 0.05
 ```
 
-**Análisis final**
+**Análisis**
 
 **1.- Eficacia del modelo**
 
@@ -888,3 +888,212 @@ Limitación: R² sugiere que otros factores no medidos también influyen en el r
 Los intervalos de confianza estrechos indican estimaciones precisas
 
 El modelo valida la importancia conjunta de factores bioquímicos (HbA1c), genéticos (historial familiar) y demográficos (edad) en la predicción del riesgo diabético.
+
+Con estas conclusiones llegamos a que tenemos un modelo bueno, pero que podría ser mucho mejor. Esto se debe a que lo que queremos predecir es binario, es decir, la respuesta tiene que ser 1 o 0, esto através de una regresión lineal es dificíl de hacer, tendríamos que usar otro tipo de relación para estimar mejor la probabilidad de tener diabetes. 
+
+## Predicción de Diabetes através de la predicción de la Hemoglobina Glucosada(HbA1c)##
+
+En este último apartado intentaremos llegar a un modelo mejor para predecir la diabetes. Esto lo haremos de una manera indirecta; lo que buscaremos será predecir el nivel de **HbA1c**, el cuál como hemos visto en los apartados anteriores, es el factor principal a la hora de predecir o decidir si una persona tiene diabetes o no. Entonces, para predecir los niveles de **HbA1c** lo haremos en función de la edad, historial familiar, la glucosa en ayunas, postprandial y si tiene diabetes o no. Antes haremos unas gráficas para comprobar si nuestro modelo es correcto y no hay nada raro.
+```{r}
+library(ggplot2)
+library(gridExtra)
+library(broom)
+library(dplyr)
+
+data <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
+
+modelo_hba1c <- lm(
+  hba1c ~ Age + family_history_diabetes +
+    glucose_fasting + glucose_postprandial,
+  data = data
+)
+
+summary(modelo_hba1c)
+
+confint(modelo_hba1c, level = 0.95)
+
+tab_tidy <- tidy(modelo_hba1c)
+importancia <- tab_tidy[order(abs(tab_tidy$statistic), decreasing = TRUE), ]
+
+# 4. Gráficas modelo
+
+diag <- augment(modelo_hba1c)
+
+p1 <- ggplot(diag, aes(.fitted, .resid)) +
+  geom_point(alpha = 0.35) +
+  geom_hline(yintercept = 0, color = "red", size = 1) +
+  labs(title = "Residuos vs Ajustados", x = "Ajustados", y = "Residuos") +
+  theme_minimal(base_size = 13)
+
+p2 <- ggplot(diag, aes(sample = .std.resid)) +
+  stat_qq(alpha = 0.35) +
+  stat_qq_line(color = "red", size = 1) +
+  labs(title = "Gráfico Q-Q", x = "Cuantiles Teóricos", y = "Residuos Std") +
+  theme_minimal(base_size = 13)
+
+p3 <- ggplot(diag, aes(.fitted, sqrt(abs(.std.resid)))) +
+  geom_point(alpha = 0.35) +
+  geom_smooth(se = FALSE, color = "red") +
+  labs(title = "Scale-Location", x = "Ajustados", y = "√|Residuos Std|") +
+  theme_minimal(base_size = 13)
+
+p4 <- ggplot(diag, aes(.hat, .std.resid)) +
+  geom_point(alpha = 0.35) +
+  geom_smooth(se = FALSE, color = "red") +
+  labs(title = "Residuos vs Leverage", x = "Leverage", y = "Residuos Std") +
+  theme_minimal(base_size = 13)
+
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+
+# Gráfica
+pred_media <- predict(modelo_hba1c, interval = "confidence")
+pred_pred <- predict(modelo_hba1c, interval = "prediction")
+
+pred_df <- data %>%
+  mutate(
+    fit = pred_media[, "fit"],
+    lwr_mean = pred_media[, "lwr"],
+    upr_mean = pred_media[, "upr"],
+    lwr_pred = pred_pred[, "lwr"],
+    upr_pred = pred_pred[, "upr"],
+    Historial = ifelse(
+      family_history_diabetes == 1,
+      "Con historial familiar",
+      "Sin historial familiar"
+    ),
+    DiabetesDx = ifelse(
+      diagnosed_diabetes == 1,
+      "Diagnosticado",
+      "No diagnosticado"
+    )
+  )
+
+
+graf_pred <- ggplot(pred_df, aes(x = fit, y = hba1c, color = Historial)) +
+  
+  geom_point(alpha = 0.30, size = 2) +
+  
+  geom_ribbon(
+    aes(ymin = lwr_pred, ymax = upr_pred, fill = Historial),
+    alpha = 0.08, color = NA
+  ) +
+  
+  geom_ribbon(
+    aes(ymin = lwr_mean, ymax = upr_mean, fill = Historial),
+    alpha = 0.25, color = NA
+  ) +
+  
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  
+  scale_color_manual(values = c("#0066CC", "#CC0033")) +
+  scale_fill_manual(values = c("#66B2FF", "#FF99A6")) +
+  
+  labs(
+    title = "Predicción del Modelo de Regresión Múltiple",
+    subtitle = "HbA1c Observado vs HbA1c Predicho",
+    x = "HbA1c Predicho",
+    y = "HbA1c Observado",
+    color = "Historial Familiar",
+    fill = "Historial Familiar"
+  ) +
+  theme_minimal(base_size = 15) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    legend.position = "top"
+  )
+
+print(graf_pred)
+
+#A: Sin historial familiar
+df_sin <- pred_df %>% filter(family_history_diabetes == 0)
+
+graf_sin <- ggplot(df_sin, aes(fit, hba1c, color = DiabetesDx)) +
+  geom_point(alpha = 0.35, size = 2) +
+  geom_ribbon(aes(ymin = lwr_pred, ymax = upr_pred, fill = DiabetesDx),
+              alpha = 0.10, color = NA) +
+  geom_ribbon(aes(ymin = lwr_mean, ymax = upr_mean, fill = DiabetesDx),
+              alpha = 0.25, color = NA) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  scale_color_manual(values = c("#0099CC", "#CC3300")) +
+  scale_fill_manual(values = c("#80D4FF", "#FF9980")) +
+  labs(
+    title = "Predicción HbA1c — Sin historial familiar",
+    subtitle = "Segmentado por diagnóstico de diabetes",
+    x = "HbA1c Predicho",
+    y = "HbA1c Observado",
+    color = "Diagnóstico",
+    fill = "Diagnóstico"
+  ) +
+  theme_minimal(base_size = 15)
+
+print(graf_sin)
+
+# B: Con historial familiar
+df_con <- pred_df %>% filter(family_history_diabetes == 1)
+
+graf_con <- ggplot(df_con, aes(fit, hba1c, color = DiabetesDx)) +
+  geom_point(alpha = 0.35, size = 2) +
+  geom_ribbon(aes(ymin = lwr_pred, ymax = upr_pred, fill = DiabetesDx),
+              alpha = 0.10, color = NA) +
+  geom_ribbon(aes(ymin = lwr_mean, ymax = upr_mean, fill = DiabetesDx),
+              alpha = 0.25, color = NA) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  scale_color_manual(values = c("#0066CC", "#CC0033")) +
+  scale_fill_manual(values = c("#66B2FF", "#FF99A6")) +
+  labs(
+    title = "Predicción HbA1c — Con historial familiar",
+    subtitle = "Segmentado por diagnóstico de diabetes",
+    x = "HbA1c Predicho",
+    y = "HbA1c Observado",
+    color = "Diagnóstico",
+    fill = "Diagnóstico"
+  ) +
+  theme_minimal(base_size = 15)
+
+print(graf_con)
+
+# Clasificación basada en criterios médicos estándar
+data$hba1c_cat <- cut(
+  data$hba1c,
+  breaks = c(-Inf, 5.6, 6.4, Inf),
+  labels = c("Normal", "Prediabetes", "Diabetes")
+)
+
+# Resumen de valores reales en  eldataset
+media_stage <- aggregate(hba1c ~ diabetes_stage, data, mean)
+
+# Comparación HbA1c real vs clasificación estándar
+comparacion_tabla <- table(
+  HBAC1_clasificacion = data$hba1c_cat,
+  Etapa_real = data$diabetes_stage
+)
+
+# Rango real observado por etapa
+rangos_stage <- aggregate(hba1c ~ diabetes_stage, data, 
+                          function(x) c(min = min(x), max = max(x)))
+
+# Mostrar resultados
+media_stage
+comparacion_tabla
+rangos_stage
+
+importancia$term[1:3]
+summary(modelo_hba1c)$r.squared
+```
+
+##Conclusion final##
+
+
+Con este modelo final, lo primero que podemos decir es que es muy conifable, ya que su R²=0.90. Esto nos dice que con los factores que hemos incluido explicamos el 90.5% de la variabilidad de HbA1c.
+
+Con el análisis que hemos hecho podemos decir que si una persona tiene:
+
+1.-**<5.7%** de HbA1c en la sangre, no tiene diabetes.
+
+2.-**5.7-6.5** de HbA1c en la sangre, tiene pre-diabetes.
+
+3.-**>6.5** de HbA1c en la sangre, tiene diabetes.
+
+La comparación entre la clasificación calculada por HbA1c y la variable diabetes_stage evidencia una consistencia importante, en particular en los casos de diabetes tipo 2, donde una gran mayoría cae en el rango clínico esperado. Además, los rangos reales observados dentro de cada etapa (por ejemplo, 4.00–5.69 para No Diabetes y hasta 9.80 para Diabetes Tipo 2) refuerzan que los datos capturan adecuadamente la heterogeneidad y progresión de la enfermedad.
+
+Las gráficas de predicción muestran que el modelo reproduce muy bien los valores reales de HbA1c, con puntos cercanos a la línea perfecta (y=x), bandas estrechas de confianza y predicción, y comportamientos similares tanto para personas con como sin diabetes, independientemente del historial familiar. El modelo exhibe un desempeño sobresaliente: explica más del 90% de la variabilidad en HbA1c (R² = 0.9055), presenta un error residual bajo (0.25 unidades de HbA1c) y un F-statistic extremadamente significativo, lo que indica que los predictores utilizados —glucosa en ayunas, glucosa postprandial, edad e historial familiar— tienen un efecto real y fuerte sobre HbA1c. La mínima diferencia entre R² y R² ajustado confirma además que el modelo no está sobreajustado y generaliza correctamente.
