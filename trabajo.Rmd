@@ -410,8 +410,7 @@ El modelo explica el 4.93% de la variabilidad en los casos de diabetes, lo que i
 El historial familiar es el factor de riesgo más fuerte identificado, mientras que la actividad física regular ofrece una protección moderada pero acumulativa contra la diabetes.Entonces nos hemos dado cuenta de que lo que pensabamos no estaba del todo bien, solo hemos acertado en cuanto al historial familiar.
 
 
-## Relación entre Marcadores Glucémicos y Probabilidad de Diabetes ####
-
+## Modelo para predecir la diabetes ####
 Los marcadores glucémicos son una medida de la rapidez con la que un alimento con carbohidratos aumenta los niveles de azúcar(glucosa) en la sangre después de su consumo.
 
 La **hemoglobina glucosada(HbA1c)** es una medida que mide el porcentaje de hemoglobina en los glóbulos rojos qué está unida al azúcar.
@@ -1079,6 +1078,16 @@ rangos_stage
 
 importancia$term[1:3]
 summary(modelo_hba1c)$r.squared
+
+#Ahora predeciremos el nivel de HbA1c para una persona con estas características:
+nueva_persona <- data.frame(
+  Age = 27,
+  family_history_diabetes = 1,
+  glucose_fasting = 92,
+  glucose_postprandial = 128
+)
+predict(modelo_hba1c, nueva_persona, interval = "confidence")
+predict(modelo_hba1c, nueva_persona, interval = "prediction")
 ```
 
 ##Conclusion final##
@@ -1097,3 +1106,8 @@ Con el análisis que hemos hecho podemos decir que si una persona tiene:
 La comparación entre la clasificación calculada por HbA1c y la variable diabetes_stage evidencia una consistencia importante, en particular en los casos de diabetes tipo 2, donde una gran mayoría cae en el rango clínico esperado. Además, los rangos reales observados dentro de cada etapa (por ejemplo, 4.00–5.69 para No Diabetes y hasta 9.80 para Diabetes Tipo 2) refuerzan que los datos capturan adecuadamente la heterogeneidad y progresión de la enfermedad.
 
 Las gráficas de predicción muestran que el modelo reproduce muy bien los valores reales de HbA1c, con puntos cercanos a la línea perfecta (y=x), bandas estrechas de confianza y predicción, y comportamientos similares tanto para personas con como sin diabetes, independientemente del historial familiar. El modelo exhibe un desempeño sobresaliente: explica más del 90% de la variabilidad en HbA1c (R² = 0.9055), presenta un error residual bajo (0.25 unidades de HbA1c) y un F-statistic extremadamente significativo, lo que indica que los predictores utilizados —glucosa en ayunas, glucosa postprandial, edad e historial familiar— tienen un efecto real y fuerte sobre HbA1c. La mínima diferencia entre R² y R² ajustado confirma además que el modelo no está sobreajustado y generaliza correctamente.
+
+#Análisis de la predicción#
+Las conclusiones de la predicción son las siguientes:
+La persona a la que le estamos haciendo la predicción tendrá un HbA1c estimado de 5.6% que estaría en el límite de no-diabetes y pre-diabetes, por lo cuál se le recomendaría a esta persona a tomar precauciones en su alimentación y ejercicio para poder bajar este nivel.
+Por otra parte el intervalo nos indica que si otra persona con las mismas características viniera del mismo tipo de población, su HbA1c estaría entre 5.09% y 6.07% con un 95% de probabilidad.
