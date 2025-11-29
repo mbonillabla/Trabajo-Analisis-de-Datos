@@ -46,6 +46,8 @@ ggplot(df, aes(x = family_history_diabetes, fill = diagnosed_diabetes)) +
   )
 
 ```
+
+
 Como se puede observar, el gráfico se divide en dos bloques. El bloque correspondiente al 0 representa a las personas sin familiares con historial de diabetes, mientras que el bloque etiquetado con el 1 incluye a aquellas que sí tienen antecedentes familiares.
 
 Al comparar la proporción de personas diagnosticadas con diabetes en cada grupo, se evidencia claramente que tener antecedentes familiares de diabetes aumenta la probabilidad de desarrollar la enfermedad.
@@ -445,10 +447,12 @@ El modelo explica el 4.93% de la variabilidad en los casos de diabetes, lo que i
 **Conclusión Práctica:**
 El historial familiar es el factor de riesgo más fuerte identificado, mientras que la actividad física regular ofrece una protección moderada pero acumulativa contra la diabetes. Entonces nos hemos dado cuenta de que lo que pensábamos no estaba del todo bien, solo hemos acertado en cuanto al historial familiar.
 
-##Modelo para predecir la diabetes####
+
+## Modelo para predecir la diabetes ####
+
 Los marcadores glucémicos son una medida de la rapidez con la que un alimento con carbohidratos aumenta los niveles de azúcar (glucosa) en la sangre después de su consumo.
 
-La **hemoglobina glucosada (HbA1c)** es una medida que mide el porcentaje de hemoglobina en los glóbulos rojos que está unida al azúcar.
+La **hemoglobina glucosilada (HbA1c)** es una medida que mide el porcentaje de hemoglobina en los glóbulos rojos que está unida al azúcar.
 La información que nos proporciona es el nivel promedio de glucosa en la sangre durante los últimos 2-3 meses.
 
 La **glucosa en ayunas (GA)** mide el nivel de glucosa en la sangre después de un ayuno de al menos 8 horas.
@@ -715,7 +719,7 @@ make_predictions <- function() {
       grupo = "Con historial familiar"
     )
     
-    pred_con_results <- predict(modelo, newdata = pred_con, interval = "confidence")
+    pred_con_results <- predict(modelo, newdata = pred_con, interval = "confidence") 
     pred_con$fit <- pred_con_results[, "fit"]
     pred_con$lwr <- pred_con_results[, "lwr"]
     pred_con$upr <- pred_con_results[, "upr"]
@@ -925,7 +929,7 @@ El modelo valida la importancia conjunta de factores bioquímicos (HbA1c), gené
 
 Con estas conclusiones llegamos a que tenemos un modelo bueno, pero que podría ser mucho mejor. Esto se debe a que lo que queremos predecir es binario, es decir, la respuesta tiene que ser 1 o 0, esto a través de una regresión lineal es difícil de hacer, tendríamos que usar otro tipo de relación para estimar mejor la probabilidad de tener diabetes. 
 
-## Predicción de Diabetes a través de la predicción de la Hemoglobina Glucosada(HbA1c)##
+## Predicción de Diabetes a través de la predicción de la Hemoglobina Glucosilada(HbA1c)##
 
 En este último apartado intentaremos llegar a un modelo mejor para predecir la diabetes. Esto lo haremos de una manera indirecta; lo que buscaremos será predecir el nivel de **HbA1c**, el cuál como hemos visto en los apartados anteriores, es el factor principal a la hora de predecir o decidir si una persona tiene diabetes o no. Entonces, para predecir los niveles de **HbA1c** lo haremos en función de la edad, historial familiar, la glucosa en ayunas, postprandial y si tiene diabetes o no. Antes haremos unas gráficas para comprobar si nuestro modelo es correcto y no hay nada raro.
 ```{r, warning=FALSE}
@@ -1091,7 +1095,7 @@ predict(modelo_hba1c, nueva_persona, interval = "confidence")
 predict(modelo_hba1c, nueva_persona, interval = "prediction")
 ```
 
-##Conclusión final##
+**Conclusión final**
 
 
 Con este modelo final, lo primero que podemos decir es que es muy confiable, ya que su R²=0.90. Esto nos dice que con los factores que hemos incluido explicamos el 90.5% de la variabilidad de HbA1c.
