@@ -1,72 +1,92 @@
 ---
 title: "Influencia de los Hábitos de Vida en el Desarrollo de la Diabetes"
-author: 'Bernandino Bonilla, Lucas Azorín'
-date: 11/9/2025
-output: 
-  rmdformats::robobook
-  
+author: "Bernardino Bonilla, Lucas Azorín"
+date: "11/9/2025"
+output:
+  html_document:
+    theme: cerulean
+    toc: true
+    toc_float: 
+      collapsed: true
 ---
 
 # Introduccion
 
-La diabetes es una de las enfermedades crónicas más prevalentes en el mundo actual. Se caracteriza por niveles elevados de glucosa en la sangre debido a una deficiencia en la producción o en la acción de la insulina. En las últimas décadas, su incidencia ha aumentado de manera significativa, convirtiéndose en un problema global de salud pública que afecta a millones de personas en todas las edades y contextos sociales. Diversos factores influyen en el desarrollo de la diabetes, entre ellos los hábitos de vida como la alimentación, la actividad física y el peso corporal, este treabajo se enfocara en analizar estos factores con el objetivo de conozer la influencia que tiene cada uno en la probabilidad de desarrollar diabetes.
+La diabetes es una de las enfermedades crónicas más prevalentes en el mundo actual. Se caracteriza por niveles elevados de glucosa en la sangre debido a una deficiencia en la producción o en la acción de la insulina. En las últimas décadas, su incidencia ha aumentado de manera significativa, convirtiéndose en un problema global de salud pública que afecta a millones de personas en todas las edades y contextos sociales. Diversos factores influyen en el desarrollo de la diabetes, entre ellos los hábitos de vida como la alimentación, la actividad física y el peso corporal. Este trabajo se enfocará en analizar estos factores con el objetivo de conocer la influencia que tiene cada uno en la probabilidad de desarrollar diabetes.
 
 ![](diabetes.jpg)
 
 # Visualización de los datos 
 
 
+## ¿Tiene o no efecto en la probabilidad de tener diabetes tener familia con diabetes diagnosticada? ##
 
-## ¿Tiene o no efecto en la probabilidad de tener diabetes tener familia con diabetes diagnosticada? ####
+**Graficando los valores**
 
-```{r}
+
+```{r, warning=FALSE}
+library(readr)
+library(ggplot2)
+df <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
+df <- df[df$gender != "Other", ]
+df$family_history_diabetes <- as.factor(df$family_history_diabetes)
+df$diagnosed_diabetes <- as.factor(df$diagnosed_diabetes)
+
+ggplot(df, aes(x = family_history_diabetes, fill = diagnosed_diabetes)) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Historial Familiar vs Diabetes Diagnosticada",
+    x = "Historial de Diabetes Familiar",
+    y = "Número de Personas",
+    fill = "Diabetes Diagnosticada"
+  ) +
+  theme_minimal() +
+  scale_fill_manual(
+    values = c('0' = "#56B4E9", '1' = "#E69F00")
+  )
+
+```
+Como se puede observar, el gráfico se divide en dos bloques. El bloque correspondiente al 0 representa a las personas sin familiares con historial de diabetes, mientras que el bloque etiquetado con el 1 incluye a aquellas que sí tienen antecedentes familiares.
+
+Al comparar la proporción de personas diagnosticadas con diabetes en cada grupo, se evidencia claramente que tener antecedentes familiares de diabetes aumenta la probabilidad de desarrollar la enfermedad.
+
+```{r, warning=FALSE}
+
 library(readr)
 df <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
 
 df$diagnosed_diabetes <- as.numeric(df$diagnosed_diabetes)
 df$family_history_diabetes <- as.numeric(df$family_history_diabetes)
 
-t_result <- t.test(diagnosed_diabetes ~ family_history_diabetes, data = df)
-t_result
+tab <- table(df$family_history_diabetes, df$diagnosed_diabetes)
+prop.test(tab)
 ```
-Como se puede ver, la grafica se divide en dos bloques. El bloque sobre el 0 no tiene familia con historial de diabetes y el bloque sobre el 1 si. Si miramos la proporcion de gente con diabetes diagnosticada y la gente en el bloque, se ve claramente que tener una familia con historial de diabetes hace que tu tengas mas probabilidad de desarrollar diabetes. 
 
-Con un prop.test podremos determinar si hay una correlacion entre tener diabetes teninedo familia con diabetes de manera matematica: (Hemos elegido hacer un prop.test porque es un modelo que sigue una distribucion binomial y al tener valores binarion nos ha parecido mas adecuado)
+Con una prueba de proporciones (prop.test) podremos determinar si existe una correlación entre tener diabetes y tener familiares con diabetes de manera matemática. Hemos elegido hacer esta prueba porque es un modelo que sigue una distribución binomial y, al tener valores binarios, nos ha parecido el más adecuado.
 
-Ho: La probabilidad de tener diabetes es independiente de tu genetica.
+H₀: La probabilidad de tener diabetes es independiente de los antecedentes familiares.
 
-H1: Tener familia con diabetes aumenta la probabilidad de tener diabetes.
+H₁: Tener familiares con diabetes aumenta la probabilidad de padecer diabetes.
 
 ```{r}
 library(readr)
-library(ggplot2)
 df <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
+df <- df[df$gender != "Other", ]
 
-df$family_history_diabetes <- as.factor(df$family_history_diabetes)
-df$diagnosed_diabetes <- as.factor(df$diagnosed_diabetes)
+tab <- table(df$family_history_diabetes, df$diagnosed_diabetes)
 
-ggplot(df, aes(x = diagnosed_diabetes, fill = family_history_diabetes)) +
-  geom_bar(position = "dodge") +
-  labs(
-    title = "Diabetes Diagnosticada por el historial familiar",
-    x = "Historial de diabetes Familiar",
-    y = "Número de personas",
-    fill = "Diabetes Diagnosticada"
-  ) +
-  theme_minimal() +
-  scale_fill_manual(
-    values = c('0'="#56B4E9",'1' = "#E69F00")
-    )
-
+prop.test(tab, alternative = 'greater')
 
 ```
-**Conclusiones:**
+**Conclusiones**
 
 Como podemos ver por el resultado del prop.test tenemos datos que son estadisticamente significativos como para rechazar la hipotesis nula.
 
-Como consequencia, se ve que efectivamente hay una correlacion entre tener familia con historial de diabetes y la probabilidad que tiene un sujeto en tener diabetes.
+Como consecuencia, se ve que efectivamente hay una correlación entre tener familia con historial de diabetes y la probabilidad que tiene un sujeto en tener diabetes.
 
-## Cuál es la distribución de la población según su estado de diabetes y como se relacionan con la edad y género ####
+
+## Cuál es la distribución de la población según su estado de diabetes y como se relacionan con la edad y género ##
+
 
 Ahora en este análisis lo que queremos estudiar y conocer es la distribución de los tipos de diabetes según el género de las personas que están en la muestra.
 
@@ -78,18 +98,22 @@ De esta manera podremos identificar:
   
   3.- ¿Cómo se distribuyen hombres y mujeres en cada tipo de diabetes?.
 
-```{r}
+```{r, warning=FALSE}
 library(readr)
+library(ggplot2)
+
 data <- read.csv("Diabetes_and_LifeStyle_Dataset .csv")
+data <- df[df$gender != "Other", ]
+
 ggplot(data, aes(x = diabetes_stage, fill = gender)) +
   geom_bar(position = "dodge", alpha = 0.8) +
-  labs(title = "Distribución de Etapas de Diabetes por Género",
+  labs(title = "Distribucion de Etapas de Diabetes por Genero",
        subtitle = paste("Total de pacientes:", nrow(data)),
        x = "Etapa/ Tipo de Diabetes", 
-       y = "Número de Pacientes",
-       fill = "Género",
+       y = "Numero de Pacientes",
+       fill = "Genero",
        caption = "Fuente: Dataset de Diabetes y Estilo de Vida") +
-  scale_fill_manual(values = c("Female" = "#E69F00", "Male" = "#56B4E9", "Other" = "#009E73")) +
+  scale_fill_manual(values = c("Female" = "#E69F00", "Male" = "#56B4E9")) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   geom_text(stat = 'count', aes(label = ..count..), 
@@ -97,7 +121,7 @@ ggplot(data, aes(x = diabetes_stage, fill = gender)) +
 
 ```
 
-Conclusiones:
+**Conclusiones:**
 
 De esta gráfica podemos percatarnos de varias cosas. A primera vista nos damos cuenta de que el tipo de diabetes más común(en la muestra) el tipo 2. Qué esto por otros estudios sabemos que es verdad. Es el tipo de diabetes más común en el mundo. Por otro lado se puede ver que en la muestra, las mujeres cuantan con más casos de diabetes(del tipo que sea) que los hombres. Esto podría deberse a cuestiones hormonales o biológicas. En resumen.
 
@@ -116,7 +140,7 @@ Nuestro propósito en esta sección es analizar en profundidad los distintos fac
 
 ## Relación entre los minutos de actividad física y los que están diagnosticados ####
 
-```{r}
+```{r, warning=FALSE} 
 library(readr)
 library(ggplot2)
 library(scales)
@@ -207,7 +231,7 @@ Aquí podemos observar que sí hay una relación entre el tiempo de ejercicio a 
 
 ## Minutos de actividad física e historial familiar ####
 
-Ahora veremos como afecta que una persona pueda contraer diabetes dependiendo de si ha tenido hitorial familiar y el tiempo que hace deporte a la semana, a priori lo que nosotros y la mayoría de personas pensamos es que ambas son significativas e influyen mucho en la persona.
+Ahora veremos como afecta que una persona pueda contraer diabetes dependiendo de si ha tenido historial familiar y el tiempo que hace deporte a la semana, a priori lo que nosotros y la mayoría de personas pensamos es que ambas son significativas e influyen mucho en la persona.
 ```{r}
 library(readr)
 library(ggplot2)
@@ -365,66 +389,77 @@ ggplot() +
 
 # 5. Variables para análisis
 coef_intercept <- round(coef(modelo_multiple)[1], 4)
+coef_intercept
 coef_actividad <- round(coef(modelo_multiple)[2], 4)
+coef_actividad
 coef_historial <- round(coef(modelo_multiple)[3], 4)
+coef_historial
 
 conf_int <- confint(modelo_multiple, level = 0.95)
+conf_int
 
 aumento_historial <- round(coef_historial * 100, 2)
+aumento_historial
 cambio_actividad <- round(coef_actividad * 100, 4)
+cambio_actividad
 
 prob_con_historial <- round(mean(data_subset$prob_fit[data_subset$family_history_diabetes == 1], na.rm = TRUE), 3)
+prob_con_historial
 prob_sin_historial <- round(mean(data_subset$prob_fit[data_subset$family_history_diabetes == 0], na.rm = TRUE), 3)
+prob_sin_historial
 
 r_cuadrado <- round(summary(modelo_multiple)$r.squared, 4)
+r_cuadrado
 r_cuadrado_ajustado <- round(summary(modelo_multiple)$adj.r.squared, 4)
+r_cuadrado_ajustado
 
 avg_ci_width_sin <- round(mean(pred_line_sin_historial$upr - pred_line_sin_historial$lwr), 4)
+avg_ci_width_sin
 avg_ci_width_con <- round(mean(pred_line_con_historial$upr - pred_line_con_historial$lwr), 4)
+avg_ci_width_con
 ```
-**Analisis general:**
+**Análisis general:**
 
-  Tener historial familiar de diabetes aumenta el riesgo en 23.5%
+Tener historial familiar de diabetes aumenta el riesgo en 23.5%
 
-  Personas sin historial familiar: riesgo promedio de 54.8%
+Personas sin historial familiar: riesgo promedio de 54.8%
 
-  Personas con historial familiar: riesgo promedio de 78.4%
+Personas con historial familiar: riesgo promedio de 78.4%
 
-  Esto significa que el historial familiar casi duplica el riesgo base
+Esto significa que el historial familiar casi duplica el riesgo base
 
 **Sobre la actividad física:**
 
-  Por cada minuto adicional de ejercicio semanal, el riesgo de diabetes disminuye en 0.057%
+Por cada minuto adicional de ejercicio semanal, el riesgo de diabetes disminuye en 0.057%
 
-  Aunque esta reducción parece pequeña por minuto, acumula un efecto significativo:
+Aunque esta reducción parece pequeña por minuto, acumula un efecto significativo:
 
-  30 minutos extra semanales: reduce riesgo en 1.7%
+30 minutos extra semanales: reduce riesgo en 1.7%
 
-  60 minutos extra semanales: reduce riesgo en 3.4%
+60 minutos extra semanales: reduce riesgo en 3.4%
 
-  120 minutos extra semanales: reduce riesgo en 6.8%
+120 minutos extra semanales: reduce riesgo en 6.8%
 
 El modelo explica el 4.93% de la variabilidad en los casos de diabetes, lo que indica que aunque el historial familiar y el ejercicio son factores importantes, existen otros elementos no considerados en este análisis que también influyen significativamente en el desarrollo de la enfermedad.
 
 **Conclusión Práctica:**
-El historial familiar es el factor de riesgo más fuerte identificado, mientras que la actividad física regular ofrece una protección moderada pero acumulativa contra la diabetes.Entonces nos hemos dado cuenta de que lo que pensabamos no estaba del todo bien, solo hemos acertado en cuanto al historial familiar.
+El historial familiar es el factor de riesgo más fuerte identificado, mientras que la actividad física regular ofrece una protección moderada pero acumulativa contra la diabetes. Entonces nos hemos dado cuenta de que lo que pensábamos no estaba del todo bien, solo hemos acertado en cuanto al historial familiar.
 
+##Modelo para predecir la diabetes####
+Los marcadores glucémicos son una medida de la rapidez con la que un alimento con carbohidratos aumenta los niveles de azúcar (glucosa) en la sangre después de su consumo.
 
-## Modelo para predecir la diabetes ####
-Los marcadores glucémicos son una medida de la rapidez con la que un alimento con carbohidratos aumenta los niveles de azúcar(glucosa) en la sangre después de su consumo.
-
-La **hemoglobina glucosada(HbA1c)** es una medida que mide el porcentaje de hemoglobina en los glóbulos rojos qué está unida al azúcar.
-La información que nos proporciona es el nivel promedio de glucosa en la sangre durante los últimos 2-3 meses. 
+La **hemoglobina glucosada (HbA1c)** es una medida que mide el porcentaje de hemoglobina en los glóbulos rojos que está unida al azúcar.
+La información que nos proporciona es el nivel promedio de glucosa en la sangre durante los últimos 2-3 meses.
 
 La **glucosa en ayunas (GA)** mide el nivel de glucosa en la sangre después de un ayuno de al menos 8 horas.
-Nos porporciona un nivel de glucosa en sangre en un momento específico, reflejando el control glúcemico después de un periodo de no ingesta.
+Nos proporciona un nivel de glucosa en sangre en un momento específico, reflejando el control glucémico después de un periodo de no ingesta.
 
 La **glucosa postprandial (GPP)** mide el nivel de glucosa en la sangre después de una comida, generalmente se mide 2 horas después de haber comido.
-Nos indica como el cuerpo gestiona el azúcar después de la ingesta de alimentos y como responde el páncreas liberando insulina.
+Nos indica cómo el cuerpo gestiona el azúcar después de la ingesta de alimentos y cómo responde el páncreas liberando insulina.
 
-Ahora veremos de estas tres cuál es la mejor para ver cual tiene una relación mayor y nos sirve para predescir mejor la diabetes.
+Ahora veremos de estas tres cuál es la mejor para ver cuál tiene una relación mayor y nos sirve para predecir mejor la diabetes.
 
-```{r}
+```{r, warning=FALSE}
 library(readr)
 library(ggplot2)
 library(scales)
@@ -597,15 +632,15 @@ print(comparacion_redondeada)
 
 ```
 
-**Ánalisis General:**
+**Análisis General:**
 
-Así a primera vista, nos podemos dar cuenta de que el mejor predictor que tenemos es la **homoglobina glicosilada** o **HbA1c**.  Su coeficiente es alto y estable. 
+Así a primera vista, nos podemos dar cuenta de que el mejor predictor que tenemos es la **Glucosa Postprandial** o **HbA1c**.  Su coeficiente es alto y estable. 
 
-La glucosa en ayunas y postprandial nos aportan más información útil pero para momentos especificos, por lo cuál serían más unas medidas de monitoreo que de predicción. 
+La glucosa en ayunas y postprandial nos aportan más información útil pero para momentos específicos, por lo cuál serían más unas medidas de monitoreo que de predicción. 
 
 Y finalmente, el historial familiar sigue teniendo un impacto constante, podemos observar en la gráfica que con un nivel menor de cualquiera de las tres medidas, la probabilidad de contraer diabetes crece. Impacta de manera leve/media.
 
-Descartaremos la glucosa en ayunas y postprandial; y mandentremos la homoglobina glicosada junto con el historial familiar para seguir con una predicción más acertada.
+Descartaremos la glucosa en ayunas y postprandial; y mantendremos la hemoglobina glicosilada junto con el historial familiar para seguir con una predicción más acertada.
 
 ## Relación entre HbA1c, historial familiar y la edad ####
 
@@ -888,12 +923,12 @@ Los intervalos de confianza estrechos indican estimaciones precisas
 
 El modelo valida la importancia conjunta de factores bioquímicos (HbA1c), genéticos (historial familiar) y demográficos (edad) en la predicción del riesgo diabético.
 
-Con estas conclusiones llegamos a que tenemos un modelo bueno, pero que podría ser mucho mejor. Esto se debe a que lo que queremos predecir es binario, es decir, la respuesta tiene que ser 1 o 0, esto através de una regresión lineal es dificíl de hacer, tendríamos que usar otro tipo de relación para estimar mejor la probabilidad de tener diabetes. 
+Con estas conclusiones llegamos a que tenemos un modelo bueno, pero que podría ser mucho mejor. Esto se debe a que lo que queremos predecir es binario, es decir, la respuesta tiene que ser 1 o 0, esto a través de una regresión lineal es difícil de hacer, tendríamos que usar otro tipo de relación para estimar mejor la probabilidad de tener diabetes. 
 
-## Predicción de Diabetes através de la predicción de la Hemoglobina Glucosada(HbA1c)##
+## Predicción de Diabetes a través de la predicción de la Hemoglobina Glucosada(HbA1c)##
 
 En este último apartado intentaremos llegar a un modelo mejor para predecir la diabetes. Esto lo haremos de una manera indirecta; lo que buscaremos será predecir el nivel de **HbA1c**, el cuál como hemos visto en los apartados anteriores, es el factor principal a la hora de predecir o decidir si una persona tiene diabetes o no. Entonces, para predecir los niveles de **HbA1c** lo haremos en función de la edad, historial familiar, la glucosa en ayunas, postprandial y si tiene diabetes o no. Antes haremos unas gráficas para comprobar si nuestro modelo es correcto y no hay nada raro.
-```{r}
+```{r, warning=FALSE}
 library(ggplot2)
 library(gridExtra)
 library(broom)
@@ -907,42 +942,8 @@ modelo_hba1c <- lm(
   data = data
 )
 
-summary(modelo_hba1c)
-
-confint(modelo_hba1c, level = 0.95)
-
 tab_tidy <- tidy(modelo_hba1c)
 importancia <- tab_tidy[order(abs(tab_tidy$statistic), decreasing = TRUE), ]
-
-# 4. Gráficas modelo
-
-diag <- augment(modelo_hba1c)
-
-p1 <- ggplot(diag, aes(.fitted, .resid)) +
-  geom_point(alpha = 0.35) +
-  geom_hline(yintercept = 0, color = "red", size = 1) +
-  labs(title = "Residuos vs Ajustados", x = "Ajustados", y = "Residuos") +
-  theme_minimal(base_size = 13)
-
-p2 <- ggplot(diag, aes(sample = .std.resid)) +
-  stat_qq(alpha = 0.35) +
-  stat_qq_line(color = "red", size = 1) +
-  labs(title = "Gráfico Q-Q", x = "Cuantiles Teóricos", y = "Residuos Std") +
-  theme_minimal(base_size = 13)
-
-p3 <- ggplot(diag, aes(.fitted, sqrt(abs(.std.resid)))) +
-  geom_point(alpha = 0.35) +
-  geom_smooth(se = FALSE, color = "red") +
-  labs(title = "Scale-Location", x = "Ajustados", y = "√|Residuos Std|") +
-  theme_minimal(base_size = 13)
-
-p4 <- ggplot(diag, aes(.hat, .std.resid)) +
-  geom_point(alpha = 0.35) +
-  geom_smooth(se = FALSE, color = "red") +
-  labs(title = "Residuos vs Leverage", x = "Leverage", y = "Residuos Std") +
-  theme_minimal(base_size = 13)
-
-grid.arrange(p1, p2, p3, p4, nrow = 2)
 
 # Gráfica
 pred_media <- predict(modelo_hba1c, interval = "confidence")
@@ -1090,22 +1091,22 @@ predict(modelo_hba1c, nueva_persona, interval = "confidence")
 predict(modelo_hba1c, nueva_persona, interval = "prediction")
 ```
 
-##Conclusion final##
+##Conclusión final##
 
 
-Con este modelo final, lo primero que podemos decir es que es muy conifable, ya que su R²=0.90. Esto nos dice que con los factores que hemos incluido explicamos el 90.5% de la variabilidad de HbA1c.
+Con este modelo final, lo primero que podemos decir es que es muy confiable, ya que su R²=0.90. Esto nos dice que con los factores que hemos incluido explicamos el 90.5% de la variabilidad de HbA1c.
 
 Con el análisis que hemos hecho podemos decir que si una persona tiene:
 
 1.-**<5.7%** de HbA1c en la sangre, no tiene diabetes.
 
-2.-**5.7-6.5** de HbA1c en la sangre, tiene pre-diabetes.
+2.-**5.7-6.5%** de HbA1c en la sangre, tiene pre-diabetes.
 
-3.-**>6.5** de HbA1c en la sangre, tiene diabetes.
+3.-**>6.5%** de HbA1c en la sangre, tiene diabetes.
 
-La comparación entre la clasificación calculada por HbA1c y la variable diabetes_stage evidencia una consistencia importante, en particular en los casos de diabetes tipo 2, donde una gran mayoría cae en el rango clínico esperado. Además, los rangos reales observados dentro de cada etapa (por ejemplo, 4.00–5.69 para No Diabetes y hasta 9.80 para Diabetes Tipo 2) refuerzan que los datos capturan adecuadamente la heterogeneidad y progresión de la enfermedad.
+La comparación entre la clasificación calculada por HbA1c y la variable etapa de diabetes, evidencia una consistencia importante, en particular en los casos de diabetes tipo 2, donde una gran mayoría cae en el rango clínico esperado. Además, los rangos reales observados dentro de cada etapa (por ejemplo, 4.00–5.69 para No Diabetes y hasta 9.80 para Diabetes Tipo 2) refuerzan que los datos capturan adecuadamente la heterogeneidad y progresión de la enfermedad.
 
-Las gráficas de predicción muestran que el modelo reproduce muy bien los valores reales de HbA1c, con puntos cercanos a la línea perfecta (y=x), bandas estrechas de confianza y predicción, y comportamientos similares tanto para personas con como sin diabetes, independientemente del historial familiar. El modelo exhibe un desempeño sobresaliente: explica más del 90% de la variabilidad en HbA1c (R² = 0.9055), presenta un error residual bajo (0.25 unidades de HbA1c) y un F-statistic extremadamente significativo, lo que indica que los predictores utilizados —glucosa en ayunas, glucosa postprandial, edad e historial familiar— tienen un efecto real y fuerte sobre HbA1c. La mínima diferencia entre R² y R² ajustado confirma además que el modelo no está sobreajustado y generaliza correctamente.
+Las gráficas de predicción muestran que el modelo reproduce muy bien los valores reales de HbA1c, con puntos cercanos a la línea perfecta (y=x), bandas estrechas de confianza y predicción, y comportamientos similares tanto para personas con como sin diabetes, independientemente del historial familiar. El modelo exhibe un desempeño sobresaliente: explica más del 90% de la variabilidad en HbA1c (R² = 0.9055), presenta un error residual bajo (0.25 unidades de HbA1c) y un F-statistic extremadamente significativo, lo que indica que los predictores utilizados —glucosa en ayunas, glucosa postprandial, edad e historial familiar— tienen un efecto real y fuerte sobre HbA1c. La mínima diferencia entre R² y R² ajustado confirma además que el modelo no está sobre-ajustado y generaliza correctamente.
 
 #Análisis de la predicción#
 Las conclusiones de la predicción son las siguientes:
